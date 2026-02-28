@@ -255,15 +255,20 @@ export default function App() {
                 <div className="card p-6">
                   <div className="flex flex-col md:flex-row md:items-end gap-4">
                     <div className="flex-1">
-                      <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-2">Staff Member</label>
+                      <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-2">Staff Member Name</label>
                       <div className="relative">
                         <User className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
                         <input 
                           type="text" 
-                          placeholder="Enter your name to start..." 
-                          className={`input-base pl-10 ${isNameConfirmed ? 'bg-zinc-50 text-zinc-500 border-zinc-100' : ''}`}
+                          placeholder="Enter your name to unlock checklist..." 
+                          className={`input-base pl-10 h-[48px] text-lg ${isNameConfirmed ? 'bg-zinc-50 text-zinc-500 border-zinc-100' : 'border-zinc-300 focus:border-zinc-900'}`}
                           value={staffName}
                           onChange={(e) => setStaffName(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && staffName.trim() && !isNameConfirmed) {
+                              setIsNameConfirmed(true);
+                            }
+                          }}
                           disabled={isNameConfirmed || isMorningCheckDone}
                         />
                       </div>
@@ -275,21 +280,21 @@ export default function App() {
                             if (staffName.trim()) setIsNameConfirmed(true);
                             else alert('Please enter your name');
                           }}
-                          className="btn-primary h-[42px] px-6 flex items-center gap-2"
+                          className="btn-primary h-[48px] px-8 flex items-center gap-2 shadow-lg shadow-zinc-900/20"
                         >
-                          <CheckCircle2 size={18} />
-                          Confirm Name
+                          <CheckCircle2 size={20} />
+                          Submit & Start
                         </button>
                       ) : (
-                        <div className={`h-[42px] px-4 rounded-xl border flex items-center gap-2 text-sm font-medium ${isMorningCheckDone ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-blue-50 border-blue-100 text-blue-700'}`}>
-                          {isMorningCheckDone ? <CheckCircle2 size={16} /> : <User size={16} />}
+                        <div className={`h-[48px] px-6 rounded-xl border flex items-center gap-3 text-sm font-bold ${isMorningCheckDone ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-zinc-900 border-zinc-900 text-white shadow-md'}`}>
+                          {isMorningCheckDone ? <CheckCircle2 size={18} /> : <User size={18} />}
                           {isMorningCheckDone ? 'Check Complete' : `Active: ${staffName}`}
                           {!isMorningCheckDone && (
                             <button 
                               onClick={() => setIsNameConfirmed(false)}
-                              className="ml-2 text-[10px] uppercase font-bold hover:underline"
+                              className="ml-2 text-[10px] uppercase font-black bg-white/20 px-2 py-1 rounded hover:bg-white/30 transition-colors"
                             >
-                              Change
+                              Edit
                             </button>
                           )}
                         </div>
@@ -297,10 +302,14 @@ export default function App() {
                     </div>
                   </div>
                   {!isNameConfirmed && !isMorningCheckDone && (
-                    <p className="mt-3 text-xs text-zinc-400 italic flex items-center gap-1">
-                      <AlertCircle size={12} />
-                      Please confirm your name to unlock the stock checklist.
-                    </p>
+                    <motion.p 
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="mt-4 text-sm text-zinc-500 flex items-center gap-2 bg-zinc-50 p-3 rounded-lg border border-zinc-100"
+                    >
+                      <AlertCircle size={16} className="text-amber-500" />
+                      <span>Welcome! Please <strong>Submit your name</strong> above to unlock today's stock checklist.</span>
+                    </motion.p>
                   )}
                 </div>
 

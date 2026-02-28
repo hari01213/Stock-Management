@@ -30,6 +30,7 @@ export default function App() {
   const [items, setItems] = useState<Item[]>([]);
   const [checks, setChecks] = useState<Record<number, Partial<DailyCheck>>>({});
   const [staffName, setStaffName] = useState('');
+  const [isNameConfirmed, setIsNameConfirmed] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [weeklyStats, setWeeklyStats] = useState<WeeklyStat | null>(null);
@@ -61,6 +62,7 @@ export default function App() {
       });
       setChecks(checkMap);
       setStaffName(data[0].staff_name);
+      setIsNameConfirmed(true);
       setIsMorningCheckDone(true);
     }
   };
@@ -214,18 +216,29 @@ export default function App() {
 
       {/* Main Content */}
       <main className="max-w-4xl mx-auto p-6 lg:p-10">
-        <header className="mb-10">
-          <div className="flex items-center gap-2 text-zinc-500 text-sm mb-2">
-            <Calendar size={14} />
-            <span>{new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}</span>
+        <header className="mb-10 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 text-zinc-500 text-sm mb-2">
+              <Calendar size={14} />
+              <span>{new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}</span>
+            </div>
+            <h2 className="text-3xl font-bold tracking-tight">
+              {activeTab === 'checklist' && 'Daily Stock Check'}
+              {activeTab === 'purchases' && 'Record Purchases'}
+              {activeTab === 'history' && 'Daily History Log'}
+              {activeTab === 'stats' && 'Weekly Summary'}
+              {activeTab === 'settings' && 'System Settings'}
+            </h2>
           </div>
-          <h2 className="text-3xl font-bold tracking-tight">
-            {activeTab === 'checklist' && 'Daily Stock Check'}
-            {activeTab === 'purchases' && 'Record Purchases'}
-            {activeTab === 'history' && 'Daily History Log'}
-            {activeTab === 'stats' && 'Weekly Summary'}
-            {activeTab === 'settings' && 'System Settings'}
-          </h2>
+          {activeTab === 'checklist' && (
+            <button 
+              onClick={() => { fetchItems(); fetchTodayChecks(); }}
+              className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-zinc-400 hover:text-zinc-900 transition-colors"
+            >
+              <Clock size={14} />
+              Refresh List
+            </button>
+          )}
         </header>
 
         <AnimatePresence mode="wait">
@@ -239,120 +252,160 @@ export default function App() {
             {activeTab === 'checklist' && (
               <div className="space-y-8">
                 {/* Staff Info */}
-                <div className="card p-6 flex flex-col md:flex-row md:items-center gap-4">
-                  <div className="flex-1">
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-2">Staff Name</label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
-                      <input 
-                        type="text" 
-                        placeholder="Enter your name..." 
-                        className="input-base pl-10"
-                        value={staffName}
-                        onChange={(e) => setStaffName(e.target.value)}
-                        disabled={isMorningCheckDone}
-                      />
+                <div className="card p-6">
+                  <div className="flex flex-col md:flex-row md:items-end gap-4">
+                    <div className="flex-1">
+                      <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-2">Staff Member</label>
+                      <div className="relative">
+                        <User className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
+                        <input 
+                          type="text" 
+                          placeholder="Enter your name to start..." 
+                          className={`input-base pl-10 ${isNameConfirmed ? 'bg-zinc-50 text-zinc-500 border-zinc-100' : ''}`}
+                          value={staffName}
+                          onChange={(e) => setStaffName(e.target.value)}
+                          disabled={isNameConfirmed || isMorningCheckDone}
+                        />
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {!isNameConfirmed && !isMorningCheckDone ? (
+                        <button 
+                          onClick={() => {
+                            if (staffName.trim()) setIsNameConfirmed(true);
+                            else alert('Please enter your name');
+                          }}
+                          className="btn-primary h-[42px] px-6 flex items-center gap-2"
+                        >
+                          <CheckCircle2 size={18} />
+                          Confirm Name
+                        </button>
+                      ) : (
+                        <div className={`h-[42px] px-4 rounded-xl border flex items-center gap-2 text-sm font-medium ${isMorningCheckDone ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-blue-50 border-blue-100 text-blue-700'}`}>
+                          {isMorningCheckDone ? <CheckCircle2 size={16} /> : <User size={16} />}
+                          {isMorningCheckDone ? 'Check Complete' : `Active: ${staffName}`}
+                          {!isMorningCheckDone && (
+                            <button 
+                              onClick={() => setIsNameConfirmed(false)}
+                              className="ml-2 text-[10px] uppercase font-bold hover:underline"
+                            >
+                              Change
+                            </button>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <div className={`px-4 py-2 rounded-xl border flex items-center gap-2 text-sm font-medium ${isMorningCheckDone ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-amber-50 border-amber-100 text-amber-700'}`}>
-                      {isMorningCheckDone ? <CheckCircle2 size={16} /> : <Clock size={16} />}
-                      {isMorningCheckDone ? 'Check Complete' : 'Pending Check'}
-                    </div>
-                  </div>
+                  {!isNameConfirmed && !isMorningCheckDone && (
+                    <p className="mt-3 text-xs text-zinc-400 italic flex items-center gap-1">
+                      <AlertCircle size={12} />
+                      Please confirm your name to unlock the stock checklist.
+                    </p>
+                  )}
                 </div>
 
-                {/* Categories */}
-                {Object.entries(itemsByCategory).map(([category, catItems]) => (
-                  <section key={category} className="space-y-4">
-                    <h3 className="text-sm font-bold uppercase tracking-widest text-zinc-400 flex items-center gap-2">
-                      <ChevronRight size={16} />
-                      {category}
-                    </h3>
-                    <div className="grid gap-3">
-                      {(catItems as Item[]).map(item => (
-                        <CheckItem 
-                          key={item.id} 
-                          item={item} 
-                          check={checks[item.id] as Partial<DailyCheck> | undefined} 
-                          onStatusChange={(status) => handleStatusChange(item.id, status)}
-                          onUrgentToggle={() => handleUrgentToggle(item.id)}
-                          disabled={isMorningCheckDone}
-                        />
-                      ))}
-                    </div>
-                  </section>
-                ))}
-
-                {/* Actions */}
-                <div className="space-y-6 pt-6">
-                  {isMorningCheckDone && (
-                    <motion.div 
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      className="card bg-zinc-900 text-white border-none p-6 space-y-4"
+                <AnimatePresence>
+                  {(isNameConfirmed || isMorningCheckDone) && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 20 }}
+                      className="space-y-8"
                     >
-                      <div className="flex items-center justify-between border-b border-white/10 pb-4">
-                        <h3 className="font-bold flex items-center gap-2">
-                          <ClipboardCheck size={18} className="text-emerald-400" />
-                          Report Preview
-                        </h3>
-                        <span className="text-[10px] font-bold uppercase tracking-widest bg-white/10 px-2 py-1 rounded">Ready to Send</span>
-                      </div>
-                      <pre className="font-mono text-sm whitespace-pre-wrap text-zinc-300 leading-relaxed">
-                        {generateSummary()}
-                      </pre>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2">
-                        <button 
-                          onClick={copySummary}
-                          className="flex flex-col items-center justify-center gap-2 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-all border border-white/10"
-                        >
-                          <Share2 size={20} className="text-blue-400" />
-                          <span className="text-[10px] font-bold uppercase">Copy</span>
-                        </button>
-                        <button 
-                          onClick={() => {
-                            const text = generateSummary();
-                            window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
-                          }}
-                          className="flex flex-col items-center justify-center gap-2 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-all border border-white/10"
-                        >
-                          <div className="w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center">
-                            <ArrowRight size={12} className="text-white" />
+                      {/* Categories */}
+                      {Object.entries(itemsByCategory).map(([category, catItems]) => (
+                        <section key={category} className="space-y-4">
+                          <h3 className="text-sm font-bold uppercase tracking-widest text-zinc-400 flex items-center gap-2">
+                            <ChevronRight size={16} />
+                            {category}
+                          </h3>
+                          <div className="grid gap-3">
+                            {(catItems as Item[]).map(item => (
+                              <CheckItem 
+                                key={item.id} 
+                                item={item} 
+                                check={checks[item.id] as Partial<DailyCheck> | undefined} 
+                                onStatusChange={(status) => handleStatusChange(item.id, status)}
+                                onUrgentToggle={() => handleUrgentToggle(item.id)}
+                                disabled={isMorningCheckDone}
+                              />
+                            ))}
                           </div>
-                          <span className="text-[10px] font-bold uppercase">WhatsApp</span>
-                        </button>
-                        <button 
-                          onClick={() => {
-                            const text = generateSummary();
-                            window.location.href = `sms:?body=${encodeURIComponent(text)}`;
-                          }}
-                          className="flex flex-col items-center justify-center gap-2 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-all border border-white/10"
-                        >
-                          <AlertCircle size={20} className="text-amber-400" />
-                          <span className="text-[10px] font-bold uppercase">SMS</span>
-                        </button>
+                        </section>
+                      ))}
+
+                      {/* Actions */}
+                      <div className="space-y-6 pt-6">
+                        {isMorningCheckDone && (
+                          <motion.div 
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="card bg-zinc-900 text-white border-none p-6 space-y-4"
+                          >
+                            <div className="flex items-center justify-between border-b border-white/10 pb-4">
+                              <h3 className="font-bold flex items-center gap-2">
+                                <ClipboardCheck size={18} className="text-emerald-400" />
+                                Report Preview
+                              </h3>
+                              <span className="text-[10px] font-bold uppercase tracking-widest bg-white/10 px-2 py-1 rounded">Ready to Send</span>
+                            </div>
+                            <pre className="font-mono text-sm whitespace-pre-wrap text-zinc-300 leading-relaxed">
+                              {generateSummary()}
+                            </pre>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2">
+                              <button 
+                                onClick={copySummary}
+                                className="flex flex-col items-center justify-center gap-2 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-all border border-white/10"
+                              >
+                                <Share2 size={20} className="text-blue-400" />
+                                <span className="text-[10px] font-bold uppercase">Copy</span>
+                              </button>
+                              <button 
+                                onClick={() => {
+                                  const text = generateSummary();
+                                  window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+                                }}
+                                className="flex flex-col items-center justify-center gap-2 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-all border border-white/10"
+                              >
+                                <div className="w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center">
+                                  <ArrowRight size={12} className="text-white" />
+                                </div>
+                                <span className="text-[10px] font-bold uppercase">WhatsApp</span>
+                              </button>
+                              <button 
+                                onClick={() => {
+                                  const text = generateSummary();
+                                  window.location.href = `sms:?body=${encodeURIComponent(text)}`;
+                                }}
+                                className="flex flex-col items-center justify-center gap-2 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-all border border-white/10"
+                              >
+                                <AlertCircle size={20} className="text-amber-400" />
+                                <span className="text-[10px] font-bold uppercase">SMS</span>
+                              </button>
+                            </div>
+                          </motion.div>
+                        )}
+
+                        <div className="flex flex-col sm:flex-row gap-4">
+                          {!isMorningCheckDone ? (
+                            <button 
+                              onClick={submitChecklist}
+                              disabled={isSubmitting || !staffName}
+                              className="btn-primary flex-1 flex items-center justify-center gap-2"
+                            >
+                              {isSubmitting ? 'Submitting...' : 'Generate Daily Report'}
+                              <ArrowRight size={18} />
+                            </button>
+                          ) : (
+                            <button onClick={() => setIsMorningCheckDone(false)} className="btn-secondary flex-1 flex items-center justify-center gap-2 text-zinc-500">
+                              Edit Checklist
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </motion.div>
                   )}
-
-                  <div className="flex flex-col sm:flex-row gap-4">
-                    {!isMorningCheckDone ? (
-                      <button 
-                        onClick={submitChecklist}
-                        disabled={isSubmitting || !staffName}
-                        className="btn-primary flex-1 flex items-center justify-center gap-2"
-                      >
-                        {isSubmitting ? 'Submitting...' : 'Generate Daily Report'}
-                        <ArrowRight size={18} />
-                      </button>
-                    ) : (
-                      <button onClick={() => setIsMorningCheckDone(false)} className="btn-secondary flex-1 flex items-center justify-center gap-2 text-zinc-500">
-                        Edit Checklist
-                      </button>
-                    )}
-                  </div>
-                </div>
+                </AnimatePresence>
               </div>
             )}
 

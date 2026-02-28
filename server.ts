@@ -77,28 +77,39 @@ if (itemCount.count === 0) {
 const app = express();
 app.use(express.json());
 
-async function startServer() {
-  const PORT = 3000;
-
-  // API Routes
-  app.get("/api/items", (req, res) => {
+// API Routes - Registered immediately for Vercel reliability
+app.get("/api/items", (req, res) => {
+  try {
     const items = db.prepare("SELECT * FROM items ORDER BY category, name").all();
     res.json(items);
-  });
+  } catch (err: any) {
+    console.error("Error fetching items:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
 
-  app.post("/api/items", (req, res) => {
+app.post("/api/items", (req, res) => {
+  try {
     const { name, category, min_level, is_core, unit } = req.body;
     const info = db.prepare("INSERT INTO items (name, category, min_level, is_core, unit) VALUES (?, ?, ?, ?, ?)").run(name, category, min_level, is_core ? 1 : 0, unit);
     res.json({ id: info.lastInsertRowid });
-  });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
-  app.delete("/api/items/:id", (req, res) => {
+app.delete("/api/items/:id", (req, res) => {
+  try {
     const { id } = req.params;
     db.prepare("DELETE FROM items WHERE id = ?").run(id);
     res.json({ success: true });
-  });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
-  app.get("/api/checks/today", (req, res) => {
+app.get("/api/checks/today", (req, res) => {
+  try {
     const date = new Date().toISOString().split('T')[0];
     const checks = db.prepare(`
       SELECT dc.*, i.name, i.category, i.is_core, i.unit 
@@ -107,9 +118,13 @@ async function startServer() {
       WHERE dc.date = ?
     `).all(date);
     res.json(checks);
-  });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
-  app.post("/api/checks", (req, res) => {
+app.post("/api/checks", (req, res) => {
+  try {
     const { items, staff_name } = req.body;
     const date = new Date().toISOString().split('T')[0];
     
@@ -122,27 +137,19 @@ async function startServer() {
     const transaction = db.transaction((checks) => {
       deleteOld.run(date);
       for (const check of checks) {
-        insertCheck.run(date, check.item_id, check.status, check.quantity_needed, check.is_urgent ? 1 : 0, staff_name);
+        insertCheck.run(date, check.item_id, check.status, check.quantity_needed || 0, check.is_urgent ? 1 : 0, staff_name);
       }
     });
 
     transaction(items);
     res.json({ success: true });
-  });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
-  app.get("/api/reports", (req, res) => {
-    const reports = db.prepare("SELECT * FROM reports ORDER BY date DESC LIMIT 30").all();
-    res.json(reports);
-  });
-
-  app.post("/api/reports", (req, res) => {
-    const { staff_name, items_needed } = req.body;
-    const date = new Date().toISOString().split('T')[0];
-    const info = db.prepare("INSERT INTO reports (date, staff_name) VALUES (?, ?)").run(date, staff_name);
-    res.json({ id: info.lastInsertRowid });
-  });
-
-  app.get("/api/purchases", (req, res) => {
+app.get("/api/purchases", (req, res) => {
+  try {
     const purchases = db.prepare(`
       SELECT p.*, i.name 
       FROM purchases p 
@@ -150,16 +157,24 @@ async function startServer() {
       ORDER BY p.date DESC
     `).all();
     res.json(purchases);
-  });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
-  app.post("/api/purchases", (req, res) => {
+app.post("/api/purchases", (req, res) => {
+  try {
     const { item_id, quantity, cost, store } = req.body;
     const date = new Date().toISOString().split('T')[0];
     db.prepare("INSERT INTO purchases (date, item_id, quantity, cost, store) VALUES (?, ?, ?, ?, ?)").run(date, item_id, quantity, cost, store);
     res.json({ success: true });
-  });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
-  app.get("/api/stats/weekly", (req, res) => {
+app.get("/api/stats/weekly", (req, res) => {
+  try {
     const stats = db.prepare(`
       SELECT i.name, SUM(p.quantity) as total_quantity, SUM(p.cost) as total_cost
       FROM purchases p
@@ -176,7 +191,13 @@ async function startServer() {
     `).all();
 
     res.json({ items: stats, stores: storeStats });
-  });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+async function startServer() {
+  const PORT = 3000;
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production" && !process.env.VERCEL) {
@@ -189,6 +210,8 @@ async function startServer() {
   } else if (process.env.NODE_ENV === "production") {
     app.use(express.static(path.join(__dirname, "dist")));
     app.get("*", (req, res) => {
+      // Don't intercept API routes
+      if (req.path.startsWith('/api/')) return;
       res.sendFile(path.join(__dirname, "dist", "index.html"));
     });
   }

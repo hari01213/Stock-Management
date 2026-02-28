@@ -47,36 +47,56 @@ export default function App() {
   }, []);
 
   const fetchItems = async () => {
-    const res = await fetch('/api/items');
-    const data = await res.json();
-    setItems(data);
+    try {
+      const res = await fetch('/api/items');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      setItems(data);
+    } catch (err) {
+      console.error("Failed to fetch items:", err);
+    }
   };
 
   const fetchTodayChecks = async () => {
-    const res = await fetch('/api/checks/today');
-    const data: DailyCheck[] = await res.json();
-    if (data.length > 0) {
-      const checkMap: Record<number, Partial<DailyCheck>> = {};
-      data.forEach(c => {
-        checkMap[c.item_id] = c;
-      });
-      setChecks(checkMap);
-      setStaffName(data[0].staff_name);
-      setIsNameConfirmed(true);
-      setIsMorningCheckDone(true);
+    try {
+      const res = await fetch('/api/checks/today');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data: DailyCheck[] = await res.json();
+      if (data.length > 0) {
+        const checkMap: Record<number, Partial<DailyCheck>> = {};
+        data.forEach(c => {
+          checkMap[c.item_id] = c;
+        });
+        setChecks(checkMap);
+        setStaffName(data[0].staff_name);
+        setIsNameConfirmed(true);
+        setIsMorningCheckDone(true);
+      }
+    } catch (err) {
+      console.error("Failed to fetch today's checks:", err);
     }
   };
 
   const fetchPurchases = async () => {
-    const res = await fetch('/api/purchases');
-    const data = await res.json();
-    setPurchases(data);
+    try {
+      const res = await fetch('/api/purchases');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      setPurchases(data);
+    } catch (err) {
+      console.error("Failed to fetch purchases:", err);
+    }
   };
 
   const fetchStats = async () => {
-    const res = await fetch('/api/stats/weekly');
-    const data = await res.json();
-    setWeeklyStats(data);
+    try {
+      const res = await fetch('/api/stats/weekly');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      setWeeklyStats(data);
+    } catch (err) {
+      console.error("Failed to fetch stats:", err);
+    }
   };
 
   const handleStatusChange = (itemId: number, status: StockStatus) => {
